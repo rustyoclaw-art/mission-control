@@ -6,6 +6,7 @@ import {
   taskCanBeDone,
   ensureFixerExists,
   getFailureCountInStage,
+  isCancellable,
 } from './task-governance';
 
 function seedTask(id: string, workspace = 'default') {
@@ -82,4 +83,51 @@ test('failure counter reads status_changed failure events', () => {
   );
 
   assert.equal(getFailureCountInStage(taskId, 'verification'), 2);
+});
+
+// --- Cancel semantics compatibility tests ---
+
+test('isCancellable returns true for all non-terminal statuses', () => {
+  const cancellable = ['pending_dispatch', 'planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'verification'];
+  for (const s of cancellable) {
+    assert.equal(isCancellable(s), true, `Expected ${s} to be cancellable`);
+  }
+});
+
+test('isCancellable returns false for terminal statuses', () => {
+  assert.equal(isCancellable('done'), false);
+  assert.equal(isCancellable('cancelled'), false);
+});
+
+test('task can be set to cancelled status in the database', () => {
+  const taskId = crypto.randomUUID();
+  seedTask(taskId);
+
+  // Should not throw — cancelled is now a valid status
+  run(`UPDATE tasks SET status = 'cancelled' WHERE id = ?`, [taskId]);
+
+  const task = queryOne<{ status: string }>('SELECT status FROM tasks WHERE id = ?', [taskId]);
+  assert.equal(task?.status, 'cancelled');
+});
+
+test('cancelled task status persists and is queryable', () => {
+  const taskId = crypto.randomUUID();
+  run(
+    `INSERT INTO tasks (id, title, status, priority, workspace_id, business_id, created_at, updated_at)
+     VALUES (?, 'Cancel Test', 'cancelled', 'normal', 'default', 'default', datetime('now'), datetime('now'))`,
+    [taskId]
+  );
+
+  const task = queryOne<{ status: string; id: string }>('SELECT id, status FROM tasks WHERE id = ?', [taskId]);
+  assert.ok(task, 'Task should be found');
+  assert.equal(task?.status, 'cancelled');
+});
+
+test('cancelling already-cancelled task is blocked by isCancellable', () => {
+  // isCancellable guards the API layer against double-cancel
+  assert.equal(isCancellable('cancelled'), false, 'Already cancelled task must not be re-cancelled');
+});
+
+test('cancelling done task is blocked by isCancellable', () => {
+  assert.equal(isCancellable('done'), false, 'Done task must not be cancelled');
 });

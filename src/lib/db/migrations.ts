@@ -635,6 +635,55 @@ const migrations: Migration[] = [
         console.log('[Migration 014] Added images column to tasks');
       }
     }
+  },
+  {
+    id: '015',
+    name: 'add_cancelled_task_status',
+    up: (db) => {
+      console.log('[Migration 015] Adding cancelled status to tasks CHECK constraint...');
+
+      // SQLite does not support ALTER TABLE to change CHECK constraints.
+      // We must recreate the tasks table with the updated constraint.
+      // FK checks are already disabled by the migration runner; legacy_alter_table is ON.
+
+      db.exec(`
+        CREATE TABLE tasks_new (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          status TEXT DEFAULT 'inbox' CHECK (status IN ('pending_dispatch', 'planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'verification', 'done', 'cancelled')),
+          priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+          assigned_agent_id TEXT REFERENCES agents(id),
+          created_by_agent_id TEXT REFERENCES agents(id),
+          workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+          business_id TEXT DEFAULT 'default',
+          due_date TEXT,
+          workflow_template_id TEXT REFERENCES workflow_templates(id),
+          planning_session_key TEXT,
+          planning_messages TEXT,
+          planning_complete INTEGER DEFAULT 0,
+          planning_spec TEXT,
+          planning_agents TEXT,
+          planning_dispatch_error TEXT,
+          status_reason TEXT,
+          images TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        )
+      `);
+
+      db.exec(`INSERT INTO tasks_new SELECT * FROM tasks`);
+      db.exec(`DROP TABLE tasks`);
+      db.exec(`ALTER TABLE tasks_new RENAME TO tasks`);
+
+      // Recreate indexes
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_agent_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_openclaw_sessions_task ON openclaw_sessions(task_id)`);
+
+      console.log('[Migration 015] tasks table recreated with cancelled status support');
+    }
   }
 ];
 

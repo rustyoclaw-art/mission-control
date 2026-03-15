@@ -4,6 +4,9 @@ import type { Task } from '@/lib/types';
 
 const ACTIVE_STATUSES = ['assigned', 'in_progress', 'testing', 'review', 'verification'];
 
+// Terminal statuses that cannot be cancelled
+const TERMINAL_STATUSES = ['done', 'cancelled'];
+
 export function hasStageEvidence(taskId: string): boolean {
   const deliverable = queryOne<{ count: number }>('SELECT COUNT(*) as count FROM task_deliverables WHERE task_id = ?', [taskId]);
   const activity = queryOne<{ count: number }>(
@@ -107,6 +110,10 @@ export function taskCanBeDone(taskId: string): boolean {
 
 export function isActiveStatus(status: string): boolean {
   return ACTIVE_STATUSES.includes(status);
+}
+
+export function isCancellable(status: string): boolean {
+  return !TERMINAL_STATUSES.includes(status);
 }
 
 export function pickDynamicAgent(taskId: string, stageRole?: string | null): { id: string; name: string } | null {

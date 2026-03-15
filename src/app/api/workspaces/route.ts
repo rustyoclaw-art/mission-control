@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
           review: 0,
           verification: 0,
           done: 0,
+          cancelled: 0,
           total: 0
         };
         

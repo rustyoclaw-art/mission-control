@@ -4,7 +4,7 @@ import { queryOne, run } from '@/lib/db';
 import { broadcast } from '@/lib/events';
 import { getMissionControlUrl } from '@/lib/config';
 import { handleStageTransition, handleStageFailure, getTaskWorkflow, drainQueue, populateTaskRolesFromAgents } from '@/lib/workflow-engine';
-import { hasStageEvidence, canUseBoardOverride, auditBoardOverride, taskCanBeDone, recordLearnerOnTransition } from '@/lib/task-governance';
+import { hasStageEvidence, canUseBoardOverride, auditBoardOverride, taskCanBeDone, recordLearnerOnTransition, isCancellable } from '@/lib/task-governance';
 import { syncGatewayAgentsToCatalog } from '@/lib/agent-catalog-sync';
 import { UpdateTaskSchema } from '@/lib/validation';
 import type { Task, UpdateTaskRequest, Agent, TaskDeliverable } from '@/lib/types';
@@ -158,6 +158,69 @@ export async function PATCH(
       existing.status === 'inbox'
     ) {
       nextStatus = 'assigned';
+    }
+
+    // Cancel-semantics compatibility: status=cancelled is a terminal state that bypasses
+    // evidence gates and dispatch logic. Cannot cancel tasks already in a terminal state.
+    if (nextStatus === 'cancelled') {
+      if (!isCancellable(existing.status)) {
+        return NextResponse.json(
+          { error: `Cannot cancel task: current status '${existing.status}' is already terminal` },
+          { status: 400 }
+        );
+      }
+
+      updates.push('status = ?');
+      values.push('cancelled');
+
+      // Clear any in-flight planning session
+      updates.push('planning_session_key = NULL');
+      updates.push('planning_messages = NULL');
+      updates.push('planning_complete = 0');
+      updates.push('planning_dispatch_error = NULL');
+
+      // Reset assigned agent to standby if this was their only active task
+      if (existing.assigned_agent_id) {
+        const otherActiveTasks = queryOne<{ cnt: number }>(
+          `SELECT COUNT(*) as cnt FROM tasks WHERE assigned_agent_id = ? AND id != ? AND status IN ('assigned', 'in_progress', 'testing', 'review', 'verification')`,
+          [existing.assigned_agent_id, id]
+        );
+        if (!otherActiveTasks || otherActiveTasks.cnt === 0) {
+          run(
+            `UPDATE agents SET status = 'standby', updated_at = datetime('now') WHERE id = ? AND status = 'working'`,
+            [existing.assigned_agent_id]
+          );
+        }
+      }
+
+      run(
+        `INSERT INTO events (id, type, task_id, message, created_at) VALUES (?, ?, ?, ?, ?)`,
+        [uuidv4(), 'task_status_changed', id, `Task "${existing.title}" cancelled`, now]
+      );
+
+      updates.push('updated_at = ?');
+      values.push(now);
+      values.push(id);
+
+      run(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`, values);
+
+      const cancelledTask = queryOne<Task>(
+        `SELECT t.*, aa.name as assigned_agent_name, aa.avatar_emoji as assigned_agent_emoji,
+          ca.name as created_by_agent_name, ca.avatar_emoji as created_by_agent_emoji
+         FROM tasks t
+         LEFT JOIN agents aa ON t.assigned_agent_id = aa.id
+         LEFT JOIN agents ca ON t.created_by_agent_id = ca.id
+         WHERE t.id = ?`,
+        [id]
+      );
+
+      if (cancelledTask) broadcast({ type: 'task_updated', payload: cancelledTask });
+
+      recordLearnerOnTransition(id, existing.status, 'cancelled', false, 'Task cancelled').catch(err =>
+        console.error('[Learner] cancel notification failed:', err)
+      );
+
+      return NextResponse.json(cancelledTask);
     }
 
     // Handle status change
