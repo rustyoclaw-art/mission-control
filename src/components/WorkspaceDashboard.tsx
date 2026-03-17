@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import type { WorkspaceStats } from '@/lib/types';
 
@@ -9,10 +9,40 @@ export function WorkspaceDashboard() {
   const [workspaces, setWorkspaces] = useState<WorkspaceStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [gatewayStatus, setGatewayStatus] = useState<{ connected: boolean; lastSeen?: string } | null>(null);
+
+  const checkGatewayStatus = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch('/api/openclaw/status', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        setGatewayStatus(prev => ({
+          connected: data.connected,
+          lastSeen: data.connected ? new Date().toISOString() : prev?.lastSeen,
+        }));
+      } else {
+        setGatewayStatus(prev => ({ connected: false, lastSeen: prev?.lastSeen }));
+      }
+    } catch {
+      setGatewayStatus(prev => ({ connected: false, lastSeen: prev?.lastSeen }));
+    }
+  }, []);
 
   useEffect(() => {
     loadWorkspaces();
   }, []);
+
+  useEffect(() => {
+    checkGatewayStatus();
+    // Poll gateway status every 30 seconds
+    const statusInterval = setInterval(checkGatewayStatus, 30000);
+    return () => clearInterval(statusInterval);
+  }, [checkGatewayStatus]);
 
   const loadWorkspaces = async () => {
     try {
@@ -48,6 +78,30 @@ export function WorkspaceDashboard() {
             <div className="flex items-center gap-3">
               <span className="text-2xl">🦞</span>
               <h1 className="text-xl font-bold">Mission Control</h1>
+              {/* Gateway Status Indicator */}
+              {gatewayStatus && (
+                <Link
+                  href={workspaces.length > 0 ? `/workspace/${workspaces[0].slug}/system` : '/workspace/default/system'}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    gatewayStatus.connected
+                      ? 'bg-mc-accent-green/20 border-mc-accent-green/30 text-mc-accent-green hover:bg-mc-accent-green/30'
+                      : 'bg-mc-accent-red/20 border-mc-accent-red/30 text-mc-accent-red hover:bg-mc-accent-red/30'
+                  }`}
+                  title={gatewayStatus.connected ? 'Gateway connected' : `Gateway disconnected${gatewayStatus.lastSeen ? ` - Last seen: ${new Date(gatewayStatus.lastSeen).toLocaleTimeString()}` : ''}`}
+                >
+                  {gatewayStatus.connected ? (
+                    <>
+                      <Wifi className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Connected</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Disconnected</span>
+                    </>
+                  )}
+                </Link>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Link

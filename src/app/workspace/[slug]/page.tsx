@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ListTodo, Users, Activity, Settings as SettingsIcon, ExternalLink, Home, BarChart3 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { MissionQueue } from '@/components/MissionQueue';
 import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
+import { AsyncErrorBoundary } from '@/components/ErrorBoundary';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
@@ -27,7 +28,57 @@ export default function WorkspacePage() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('queue');
   const [isPortrait, setIsPortrait] = useState(true);
 
+  // Error states for partial API failures
+  const [agentsError, setAgentsError] = useState<string | null>(null);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [lastAgentsSuccess, setLastAgentsSuccess] = useState<Date | null>(null);
+  const [lastTasksSuccess, setLastTasksSuccess] = useState<Date | null>(null);
+  const [lastEventsSuccess, setLastEventsSuccess] = useState<Date | null>(null);
+
   useSSE();
+
+  // Retry callbacks for error boundaries
+  const retryAgents = useCallback(async () => {
+    if (!workspace) return;
+    try {
+      const res = await fetch(`/api/agents?workspace_id=${workspace.id}`);
+      if (res.ok) {
+        setAgents(await res.json());
+        setAgentsError(null);
+        setLastAgentsSuccess(new Date());
+      }
+    } catch (error) {
+      console.error('Retry agents failed:', error);
+    }
+  }, [workspace, setAgents]);
+
+  const retryTasks = useCallback(async () => {
+    if (!workspace) return;
+    try {
+      const res = await fetch(`/api/tasks?workspace_id=${workspace.id}`);
+      if (res.ok) {
+        setTasks(await res.json());
+        setTasksError(null);
+        setLastTasksSuccess(new Date());
+      }
+    } catch (error) {
+      console.error('Retry tasks failed:', error);
+    }
+  }, [workspace, setTasks]);
+
+  const retryEvents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/events');
+      if (res.ok) {
+        setEvents(await res.json());
+        setEventsError(null);
+        setLastEventsSuccess(new Date());
+      }
+    } catch (error) {
+      console.error('Retry events failed:', error);
+    }
+  }, [setEvents]);
 
   useEffect(() => {
     const media = window.matchMedia('(orientation: portrait)');
@@ -78,27 +129,59 @@ export default function WorkspacePage() {
     const workspaceId = workspace.id;
 
     async function loadData() {
+      debug.api('Loading workspace data...', { workspaceId });
+
+      // Load agents
       try {
-        debug.api('Loading workspace data...', { workspaceId });
+        const agentsRes = await fetch(`/api/agents?workspace_id=${workspaceId}`);
+        if (agentsRes.ok) {
+          setAgents(await agentsRes.json());
+          setAgentsError(null);
+          setLastAgentsSuccess(new Date());
+        } else {
+          setAgentsError(`Failed to load agents (${agentsRes.status})`);
+          console.error('Agents API error:', agentsRes.status);
+        }
+      } catch (error) {
+        setAgentsError('Unable to load agents');
+        console.error('Failed to load agents:', error);
+      }
 
-        const [agentsRes, tasksRes, eventsRes] = await Promise.all([
-          fetch(`/api/agents?workspace_id=${workspaceId}`),
-          fetch(`/api/tasks?workspace_id=${workspaceId}`),
-          fetch('/api/events'),
-        ]);
-
-        if (agentsRes.ok) setAgents(await agentsRes.json());
+      // Load tasks
+      try {
+        const tasksRes = await fetch(`/api/tasks?workspace_id=${workspaceId}`);
         if (tasksRes.ok) {
           const tasksData = await tasksRes.json();
           debug.api('Loaded tasks', { count: tasksData.length });
           setTasks(tasksData);
+          setTasksError(null);
+          setLastTasksSuccess(new Date());
+        } else {
+          setTasksError(`Failed to load tasks (${tasksRes.status})`);
+          console.error('Tasks API error:', tasksRes.status);
         }
-        if (eventsRes.ok) setEvents(await eventsRes.json());
       } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setIsLoading(false);
+        setTasksError('Unable to load tasks');
+        console.error('Failed to load tasks:', error);
       }
+
+      // Load events
+      try {
+        const eventsRes = await fetch('/api/events');
+        if (eventsRes.ok) {
+          setEvents(await eventsRes.json());
+          setEventsError(null);
+          setLastEventsSuccess(new Date());
+        } else {
+          setEventsError(`Failed to load events (${eventsRes.status})`);
+          console.error('Events API error:', eventsRes.status);
+        }
+      } catch (error) {
+        setEventsError('Unable to load events');
+        console.error('Failed to load events:', error);
+      }
+
+      setIsLoading(false);
     }
 
     async function checkOpenClaw() {
@@ -209,9 +292,30 @@ export default function WorkspacePage() {
       <Header workspace={workspace} isPortrait={isPortrait} />
 
       <div className="hidden lg:flex flex-1 overflow-hidden">
-        <AgentsSidebar workspaceId={workspace.id} />
-        <MissionQueue workspaceId={workspace.id} />
-        <LiveFeed />
+        <AsyncErrorBoundary
+          error={agentsError}
+          title="Unable to load agents"
+          onRetry={retryAgents}
+          lastSuccessTime={lastAgentsSuccess}
+        >
+          <AgentsSidebar workspaceId={workspace.id} />
+        </AsyncErrorBoundary>
+        <AsyncErrorBoundary
+          error={tasksError}
+          title="Unable to load tasks"
+          onRetry={retryTasks}
+          lastSuccessTime={lastTasksSuccess}
+        >
+          <MissionQueue workspaceId={workspace.id} />
+        </AsyncErrorBoundary>
+        <AsyncErrorBoundary
+          error={eventsError}
+          title="Unable to load events"
+          onRetry={retryEvents}
+          lastSuccessTime={lastEventsSuccess}
+        >
+          <LiveFeed />
+        </AsyncErrorBoundary>
       </div>
 
       <div
@@ -221,22 +325,32 @@ export default function WorkspacePage() {
       >
         {isPortrait ? (
           <>
-            {mobileTab === 'queue' && <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />}
+            {mobileTab === 'queue' && (
+              <AsyncErrorBoundary error={tasksError} title="Unable to load tasks" onRetry={retryTasks} lastSuccessTime={lastTasksSuccess}>
+                <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />
+              </AsyncErrorBoundary>
+            )}
             {mobileTab === 'agents' && (
               <div className="h-full p-3 overflow-y-auto">
-                <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
+                <AsyncErrorBoundary error={agentsError} title="Unable to load agents" onRetry={retryAgents} lastSuccessTime={lastAgentsSuccess}>
+                  <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
+                </AsyncErrorBoundary>
               </div>
             )}
             {mobileTab === 'feed' && (
               <div className="h-full p-3 overflow-y-auto">
-                <LiveFeed mobileMode isPortrait />
+                <AsyncErrorBoundary error={eventsError} title="Unable to load events" onRetry={retryEvents} lastSuccessTime={lastEventsSuccess}>
+                  <LiveFeed mobileMode isPortrait />
+                </AsyncErrorBoundary>
               </div>
             )}
             {mobileTab === 'settings' && <MobileSettingsPanel workspace={workspace} />}
           </>
         ) : (
           <div className="h-full p-3 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
-            <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} />
+            <AsyncErrorBoundary error={tasksError} title="Unable to load tasks" onRetry={retryTasks} lastSuccessTime={lastTasksSuccess}>
+              <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} />
+            </AsyncErrorBoundary>
             <div className="min-w-0 h-full flex flex-col gap-3">
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -263,9 +377,13 @@ export default function WorkspacePage() {
                 {mobileTab === 'settings' ? (
                   <MobileSettingsPanel workspace={workspace} denseLandscape />
                 ) : mobileTab === 'agents' ? (
-                  <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait={false} />
+                  <AsyncErrorBoundary error={agentsError} title="Unable to load agents" onRetry={retryAgents} lastSuccessTime={lastAgentsSuccess}>
+                    <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait={false} />
+                  </AsyncErrorBoundary>
                 ) : (
-                  <LiveFeed mobileMode isPortrait={false} />
+                  <AsyncErrorBoundary error={eventsError} title="Unable to load events" onRetry={retryEvents} lastSuccessTime={lastEventsSuccess}>
+                    <LiveFeed mobileMode isPortrait={false} />
+                  </AsyncErrorBoundary>
                 )}
               </div>
             </div>
@@ -317,13 +435,29 @@ function MobileSettingsPanel({ workspace, denseLandscape = false }: { workspace:
         </div>
 
 
-        <Link href={`/workspace/${workspace.slug}/activity`} className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
-          <span className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Agent Activity Dashboard
-          </span>
-          <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
-        </Link>
+        <div className="text-[10px] uppercase tracking-wider text-mc-text-secondary mb-1 mt-1">Pages</div>
+        {[
+          { href: `/workspace/${workspace.slug}/calendar`, label: 'Calendar & Cron' },
+          { href: `/workspace/${workspace.slug}/system`, label: 'System Health' },
+          { href: `/workspace/${workspace.slug}/team`, label: 'Team Operations' },
+          { href: `/workspace/${workspace.slug}/agents`, label: 'Agent Control Center' },
+          { href: `/workspace/${workspace.slug}/memory`, label: 'Memory Timeline' },
+          { href: `/workspace/${workspace.slug}/pipeline`, label: 'Pipeline Operations' },
+          { href: `/workspace/${workspace.slug}/projects`, label: 'Projects' },
+          { href: `/workspace/${workspace.slug}/docs`, label: 'Docs & Artifacts' },
+          { href: `/workspace/${workspace.slug}/approvals`, label: 'Approvals' },
+          { href: `/workspace/${workspace.slug}/council`, label: 'Council' },
+          { href: `/workspace/${workspace.slug}/radar`, label: 'Radar' },
+          { href: `/workspace/${workspace.slug}/office`, label: 'Office' },
+          { href: `/workspace/${workspace.slug}/activity`, label: 'Agent Activity Dashboard' },
+        ].map(({ href, label }) => (
+          <Link key={href} href={href} className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
+            <span>{label}</span>
+            <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
+          </Link>
+        ))}
+
+        <div className="text-[10px] uppercase tracking-wider text-mc-text-secondary mb-1 mt-2">Settings</div>
         <Link href="/settings" className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">
             <SettingsIcon className="w-4 h-4" />
