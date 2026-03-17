@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, ChevronRight, GripVertical, ArrowRightLeft } from 'lucide-react';
+import { Plus, ChevronRight, GripVertical, ArrowRightLeft, Search, X } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { triggerAutoDispatch, shouldTriggerAutoDispatch } from '@/lib/auto-dispatch';
 import { getConfig } from '@/lib/config';
@@ -13,6 +13,8 @@ interface MissionQueueProps {
   workspaceId?: string;
   mobileMode?: boolean;
   isPortrait?: boolean;
+  projectFilter?: string | null;
+  onClearProjectFilter?: () => void;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
@@ -26,9 +28,10 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'done', label: 'Done', color: 'border-t-mc-accent-green' },
 ];
 
-export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = true }: MissionQueueProps) {
+export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = true, projectFilter, onClearProjectFilter }: MissionQueueProps) {
   const { tasks, updateTaskStatus, addEvent } = useMissionControl();
   const [compactEmptyColumns, setCompactEmptyColumns] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const cfg = getConfig();
@@ -47,8 +50,46 @@ export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = tru
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [mobileStatus, setMobileStatus] = useState<TaskStatus>('planning');
   const [statusMoveTask, setStatusMoveTask] = useState<Task | null>(null);
+  const [planningProgress, setPlanningProgress] = useState<Record<string, { answered: number; total: number }>>({});
 
-  const getTasksByStatus = (status: TaskStatus) => tasks.filter((task) => task.status === status);
+  // Fetch planning progress for tasks in planning status
+  useEffect(() => {
+    const planningTasks = tasks.filter((t) => t.status === 'planning');
+    if (planningTasks.length === 0) return;
+
+    const fetchProgress = async () => {
+      const progress: Record<string, { answered: number; total: number }> = {};
+      await Promise.all(
+        planningTasks.slice(0, 10).map(async (task) => {
+          try {
+            const res = await fetch(`/api/tasks/${task.id}/planning`);
+            if (res.ok) {
+              const data = await res.json();
+              const questions = data.questions || [];
+              const answered = questions.filter((q: { answer?: string }) => q.answer).length;
+              progress[task.id] = { answered, total: questions.length };
+            }
+          } catch { /* ignore */ }
+        })
+      );
+      setPlanningProgress(progress);
+    };
+
+    fetchProgress();
+  }, [tasks]);
+
+  const filteredTasks = tasks.filter((task) => {
+    if (projectFilter && !task.title.toLowerCase().includes(projectFilter.toLowerCase())) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const titleMatch = task.title.toLowerCase().includes(q);
+      const descMatch = task.description?.toLowerCase().includes(q);
+      if (!titleMatch && !descMatch) return false;
+    }
+    return true;
+  });
+
+  const getTasksByStatus = (status: TaskStatus) => filteredTasks.filter((task) => task.status === status);
 
   const updateTaskStatusWithPersist = async (task: Task, targetStatus: TaskStatus) => {
     if (task.status === targetStatus) return;
@@ -119,18 +160,51 @@ export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = tru
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-3 border-b border-mc-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
-          <span className="text-sm font-medium uppercase tracking-wider">Mission Queue</span>
+      <div className="p-3 border-b border-mc-border space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
+            <span className="text-sm font-medium uppercase tracking-wider">Mission Queue</span>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent-pink text-mc-bg rounded text-sm font-medium hover:bg-mc-accent-pink/90"
+          >
+            <Plus className="w-4 h-4" />
+            New Task
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent-pink text-mc-bg rounded text-sm font-medium hover:bg-mc-accent-pink/90"
-        >
-          <Plus className="w-4 h-4" />
-          New Task
-        </button>
+
+        {/* Search and filter bar */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mc-text-secondary" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-mc-bg border border-mc-border rounded pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-mc-accent/50"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
+                <X className="w-3.5 h-3.5 text-mc-text-secondary hover:text-mc-text" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active project filter chip */}
+        {projectFilter && (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-mc-accent/15 text-mc-accent border border-mc-accent/25">
+              Project: {projectFilter}
+              <button onClick={onClearProjectFilter} className="hover:text-mc-text">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          </div>
+        )}
       </div>
 
       {!mobileMode ? (
@@ -162,6 +236,7 @@ export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = tru
                       isDragging={draggedTask?.id === task.id}
                       mobileMode={false}
                       portraitMode={false}
+                      planningProgress={planningProgress[task.id]}
                     />
                   ))}
                 </div>
@@ -207,6 +282,7 @@ export function MissionQueue({ workspaceId, mobileMode = false, isPortrait = tru
                   isDragging={false}
                   mobileMode
                   portraitMode={isPortrait}
+                  planningProgress={planningProgress[task.id]}
                 />
               ))
             )}
@@ -255,9 +331,10 @@ interface TaskCardProps {
   isDragging: boolean;
   mobileMode: boolean;
   portraitMode?: boolean;
+  planningProgress?: { answered: number; total: number };
 }
 
-function TaskCard({ task, onDragStart, onClick, onMoveStatus, isDragging, mobileMode, portraitMode = true }: TaskCardProps) {
+function TaskCard({ task, onDragStart, onClick, onMoveStatus, isDragging, mobileMode, portraitMode = true, planningProgress }: TaskCardProps) {
   const priorityStyles = {
     low: 'text-mc-text-secondary',
     normal: 'text-mc-accent',
@@ -295,9 +372,26 @@ function TaskCard({ task, onDragStart, onClick, onMoveStatus, isDragging, mobile
         <h4 className={`font-medium leading-snug line-clamp-2 ${portraitMode ? 'text-sm mb-3' : 'text-xs mb-2'}`}>{task.title}</h4>
 
         {isPlanning && (
-          <div className={`flex items-center gap-2 ${portraitMode ? 'mb-3 py-2 px-3' : 'mb-2 py-1.5 px-2.5'} bg-purple-500/10 rounded-md border border-purple-500/20`}>
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse flex-shrink-0" />
-            <span className="text-xs text-purple-400 font-medium">Continue planning</span>
+          <div className={`${portraitMode ? 'mb-3 py-2 px-3' : 'mb-2 py-1.5 px-2.5'} bg-purple-500/10 rounded-md border border-purple-500/20`}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse flex-shrink-0" />
+              {planningProgress && planningProgress.total > 0 ? (
+                planningProgress.answered >= planningProgress.total ? (
+                  <span className="text-xs text-mc-accent-green font-medium">Ready for review</span>
+                ) : (
+                  <span className="text-xs text-purple-400 font-medium">Q: {planningProgress.answered}/{planningProgress.total} answered</span>
+                )
+              ) : planningProgress && planningProgress.total === 0 ? (
+                <span className="text-xs text-mc-text-secondary font-medium">Setup needed</span>
+              ) : (
+                <span className="text-xs text-purple-400 font-medium">Continue planning</span>
+              )}
+            </div>
+            {planningProgress && planningProgress.total > 0 && (
+              <div className="mt-1.5 h-1 rounded bg-purple-500/20 overflow-hidden">
+                <div className="h-full bg-purple-500 transition-all" style={{ width: `${Math.round((planningProgress.answered / planningProgress.total) * 100)}%` }} />
+              </div>
+            )}
           </div>
         )}
 

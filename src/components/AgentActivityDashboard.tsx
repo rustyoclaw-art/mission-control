@@ -133,13 +133,31 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
     [tasks]
   );
 
-  const blockedAgentIds = useMemo(() => {
-    const ids = new Set<string>();
+  const blockedAgents = useMemo(() => {
+    const map = new Map<string, string>();
 
     for (const task of tasks) {
       if (!task.assigned_agent_id) continue;
+      // Testing/review = waiting on external action
       if (task.status === 'testing' || task.status === 'review') {
-        ids.add(task.assigned_agent_id);
+        map.set(task.assigned_agent_id, `Waiting in ${task.status}`);
+      }
+      // Dispatch errors block progress
+      if (task.planning_dispatch_error && task.status !== 'done') {
+        map.set(task.assigned_agent_id, `Dispatch error: ${task.planning_dispatch_error.slice(0, 60)}`);
+      }
+    }
+
+    // Check for recent error events (last 5 minutes)
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    for (const event of events) {
+      if (!event.agent_id) continue;
+      if (new Date(event.created_at).getTime() < fiveMinAgo) continue;
+      const msg = event.message.toLowerCase();
+      if (msg.includes('error') || msg.includes('failed') || msg.includes('rate_limit') || msg.includes('blocked')) {
+        if (!map.has(event.agent_id)) {
+          map.set(event.agent_id, 'Recent error detected');
+        }
       }
     }
 
@@ -148,12 +166,14 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
         const hasAssignedActiveTask = tasks.some(
           (task) => task.assigned_agent_id === agent.id && task.status !== 'done'
         );
-        if (hasAssignedActiveTask) ids.add(agent.id);
+        if (hasAssignedActiveTask) map.set(agent.id, 'Offline with assigned work');
       }
     }
 
-    return ids;
-  }, [agents, tasks]);
+    return map;
+  }, [agents, tasks, events]);
+
+  const blockedAgentIds = useMemo(() => new Set(blockedAgents.keys()), [blockedAgents]);
 
   const nowWorking = useMemo(() => {
     return agents
@@ -274,51 +294,89 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             {filteredAgents.map((agent) => {
-              const agentTimeline = (eventsByAgent.get(agent.id) || []).slice(0, 5);
+              const allAgentEvents = eventsByAgent.get(agent.id) || [];
               const isBlocked = blockedAgentIds.has(agent.id);
+              const blockedReason = blockedAgents.get(agent.id);
 
               return (
-                <article key={agent.id} className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0">
-                      <div className="font-semibold truncate">{agent.avatar_emoji} {agent.name}</div>
-                      <div className="text-xs text-mc-text-secondary truncate">{agent.role}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className={`text-xs px-2 py-1 rounded uppercase ${agent.status === 'working' ? 'status-working' : agent.status === 'offline' ? 'status-offline' : 'status-standby'}`}>
-                        {agent.status}
-                      </span>
-                      <div className="text-[11px] text-mc-text-secondary mt-1">Updated {formatDistanceToNow(new Date(agent.updated_at), { addSuffix: true })}</div>
-                    </div>
-                  </div>
-
-                  {isBlocked && (
-                    <div className="mb-3 p-2.5 rounded-lg border border-mc-accent-red/30 bg-mc-accent-red/10 text-mc-accent-red text-xs flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Blocked indicator: waiting in testing/review or offline with assigned work
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase text-mc-text-secondary">Timeline</div>
-                    {agentTimeline.length === 0 ? (
-                      <div className="text-xs text-mc-text-secondary">No recent activity for this agent.</div>
-                    ) : (
-                      agentTimeline.map((event) => (
-                        <div key={event.id} className="rounded-lg border border-mc-border bg-mc-bg px-3 py-2.5 min-h-11">
-                          <div className="text-sm leading-snug">{event.message}</div>
-                          <div className="text-[11px] text-mc-text-secondary mt-1">{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </article>
+                <AgentActivityCard
+                  key={agent.id}
+                  agent={agent}
+                  isBlocked={isBlocked}
+                  blockedReason={blockedReason}
+                  allEvents={allAgentEvents}
+                />
               );
             })}
           </div>
         </section>
       </main>
     </div>
+  );
+}
+
+function AgentActivityCard({ agent, isBlocked, blockedReason, allEvents }: {
+  agent: Agent;
+  isBlocked: boolean;
+  blockedReason?: string;
+  allEvents: Event[];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const DEFAULT_LIMIT = 10;
+  const displayedEvents = showAll ? allEvents : allEvents.slice(0, DEFAULT_LIMIT);
+
+  return (
+    <article className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="font-semibold truncate">{agent.avatar_emoji} {agent.name}</div>
+          <div className="text-xs text-mc-text-secondary truncate">{agent.role}</div>
+        </div>
+        <div className="text-right shrink-0">
+          <span className={`text-xs px-2 py-1 rounded uppercase ${agent.status === 'working' ? 'status-working' : agent.status === 'offline' ? 'status-offline' : 'status-standby'}`}>
+            {agent.status}
+          </span>
+          <div className="text-[11px] text-mc-text-secondary mt-1">Updated {formatDistanceToNow(new Date(agent.updated_at), { addSuffix: true })}</div>
+        </div>
+      </div>
+
+      {isBlocked && (
+        <div className="mb-3 p-2.5 rounded-lg border border-mc-accent-red/30 bg-mc-accent-red/10 text-mc-accent-red text-xs flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{blockedReason || 'Blocked'}</span>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium uppercase text-mc-text-secondary">Timeline</div>
+        {displayedEvents.length === 0 ? (
+          <div className="text-xs text-mc-text-secondary">No recent activity for this agent.</div>
+        ) : (
+          displayedEvents.map((event) => (
+            <div key={event.id} className="rounded-lg border border-mc-border bg-mc-bg px-3 py-2.5 min-h-11">
+              <div className="text-sm leading-snug">{event.message}</div>
+              <div className="text-[11px] text-mc-text-secondary mt-1">{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</div>
+            </div>
+          ))
+        )}
+        {!showAll && allEvents.length > DEFAULT_LIMIT && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="text-xs text-mc-accent hover:underline"
+          >
+            View all {allEvents.length} events
+          </button>
+        )}
+        {showAll && allEvents.length > DEFAULT_LIMIT && (
+          <button
+            onClick={() => setShowAll(false)}
+            className="text-xs text-mc-text-secondary hover:underline"
+          >
+            Show less
+          </button>
+        )}
+      </div>
+    </article>
   );
 }
 

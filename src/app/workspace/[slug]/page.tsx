@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ListTodo, Users, Activity, Settings as SettingsIcon, ExternalLink, Home, BarChart3 } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -19,7 +19,14 @@ type MobileTab = 'queue' | 'agents' | 'feed' | 'settings';
 
 export default function WorkspacePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const slug = params.slug as string;
+  const projectFilter = searchParams.get('project');
+
+  const clearProjectFilter = useCallback(() => {
+    router.replace(`/workspace/${slug}`);
+  }, [router, slug]);
 
   const { setAgents, setTasks, setEvents, setIsOnline, setIsLoading, isLoading } = useMissionControl();
 
@@ -306,7 +313,7 @@ export default function WorkspacePage() {
           onRetry={retryTasks}
           lastSuccessTime={lastTasksSuccess}
         >
-          <MissionQueue workspaceId={workspace.id} />
+          <MissionQueue workspaceId={workspace.id} projectFilter={projectFilter} onClearProjectFilter={clearProjectFilter} />
         </AsyncErrorBoundary>
         <AsyncErrorBoundary
           error={eventsError}
@@ -327,7 +334,7 @@ export default function WorkspacePage() {
           <>
             {mobileTab === 'queue' && (
               <AsyncErrorBoundary error={tasksError} title="Unable to load tasks" onRetry={retryTasks} lastSuccessTime={lastTasksSuccess}>
-                <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />
+                <MissionQueue workspaceId={workspace.id} mobileMode isPortrait projectFilter={projectFilter} onClearProjectFilter={clearProjectFilter} />
               </AsyncErrorBoundary>
             )}
             {mobileTab === 'agents' && (
@@ -349,7 +356,7 @@ export default function WorkspacePage() {
         ) : (
           <div className="h-full p-3 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
             <AsyncErrorBoundary error={tasksError} title="Unable to load tasks" onRetry={retryTasks} lastSuccessTime={lastTasksSuccess}>
-              <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} />
+              <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} projectFilter={projectFilter} onClearProjectFilter={clearProjectFilter} />
             </AsyncErrorBoundary>
             <div className="min-w-0 h-full flex flex-col gap-3">
               <div className="grid grid-cols-3 gap-2">
