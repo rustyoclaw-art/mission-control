@@ -589,12 +589,12 @@ export default function CalendarPage() {
               </span>
             )}
             <button
-              onClick={() => loadCron(false)}
+              onClick={() => loadCron(true)}
               disabled={loading || refreshing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-mc-border text-xs text-mc-text-secondary hover:text-mc-text hover:border-mc-accent/40 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </div>
