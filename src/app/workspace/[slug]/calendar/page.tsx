@@ -17,6 +17,7 @@ import {
   XCircle,
   CalendarDays,
   Activity,
+  Filter,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ function isFailingJob(job: CronJob): boolean {
 function StatusBadge({ status, enabled }: { status: string; enabled: boolean }) {
   if (!enabled) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase bg-mc-bg-tertiary text-mc-text-secondary">
+      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase border bg-mc-bg-tertiary text-mc-text-secondary border-mc-border">
         <ToggleLeft className="w-3 h-3" />
         disabled
       </span>
@@ -106,7 +107,7 @@ function StatusBadge({ status, enabled }: { status: string; enabled: boolean }) 
   }
   if (status === 'success' || status === 'ok') {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase bg-mc-accent-green/20 text-mc-accent-green">
+      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase border bg-mc-accent-green/20 text-mc-accent-green border-mc-accent-green/50">
         <CheckCircle2 className="w-3 h-3" />
         ok
       </span>
@@ -114,7 +115,7 @@ function StatusBadge({ status, enabled }: { status: string; enabled: boolean }) 
   }
   if (status === 'error' || status === 'failure' || status === 'failed') {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase bg-mc-accent-red/20 text-mc-accent-red">
+      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase border bg-mc-accent-red/20 text-mc-accent-red border-mc-accent-red/50">
         <XCircle className="w-3 h-3" />
         failing
       </span>
@@ -122,14 +123,14 @@ function StatusBadge({ status, enabled }: { status: string; enabled: boolean }) 
   }
   if (status === 'running') {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase bg-mc-accent/20 text-mc-accent">
+      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase border bg-mc-accent/20 text-mc-accent border-mc-accent/50">
         <Activity className="w-3 h-3 animate-pulse" />
         running
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase bg-mc-accent-green/10 text-mc-accent-green/70">
+    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded uppercase border bg-mc-accent-green/10 text-mc-accent-green/70 border-mc-accent-green/30">
       <ToggleRight className="w-3 h-3" />
       enabled
     </span>
@@ -162,7 +163,7 @@ function CronJobRow({
         }`}
         onClick={() => setExpanded((e) => !e)}
       >
-        <td className="py-2.5 pl-3 pr-2 w-5">
+        <td className="py-2.5 pl-4 pr-2 w-5">
           {expanded ? (
             <ChevronDown className="w-3.5 h-3.5 text-mc-text-secondary" />
           ) : (
@@ -172,7 +173,7 @@ function CronJobRow({
         <td className="py-2.5 pr-4 max-w-[220px]">
           <div className="text-sm font-medium truncate">{job.name}</div>
           {job.schedule && (
-            <div className="text-xs text-mc-text-secondary font-mono mt-0.5">{fmtSchedule(job.schedule)}</div>
+            <div className="text-[11px] text-mc-text-secondary font-mono mt-0.5">{fmtSchedule(job.schedule)}</div>
           )}
         </td>
         <td className="py-2.5 pr-4">
@@ -194,7 +195,7 @@ function CronJobRow({
             </div>
           )}
         </td>
-        <td className="py-2.5 pr-3" onClick={(e) => e.stopPropagation()}>
+        <td className="py-2.5 pr-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1.5 justify-end">
             <button
               onClick={() => onAction(job.id, 'run-now')}
@@ -231,7 +232,7 @@ function CronJobRow({
       </tr>
       {expanded && (
         <tr className="border-b border-mc-border/40 bg-mc-bg-tertiary/20">
-          <td colSpan={6} className="px-8 py-3">
+          <td colSpan={6} className="px-8 py-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
               <div>
                 <div className="text-mc-text-secondary uppercase tracking-wider text-[10px] mb-1">Job ID</div>
@@ -246,7 +247,7 @@ function CronJobRow({
               {job.state?.lastError && (
                 <div className="col-span-2 md:col-span-4">
                   <div className="text-mc-accent-red uppercase tracking-wider text-[10px] mb-1">Last Error</div>
-                  <div className="font-mono text-mc-accent-red/80 text-[11px] bg-mc-accent-red/5 rounded p-2 break-all">
+                  <div className="font-mono text-mc-accent-red/80 text-[11px] bg-mc-accent-red/5 rounded border border-mc-accent-red/20 p-2 break-all">
                     {job.state.lastError}
                   </div>
                 </div>
@@ -257,10 +258,10 @@ function CronJobRow({
                   <div className="text-mc-text">
                     {job.state.runCount !== undefined && <span>{job.state.runCount} total</span>}
                     {job.state.successCount !== undefined && (
-                      <span className="text-mc-accent-green ml-2">✓ {job.state.successCount}</span>
+                      <span className="text-mc-accent-green ml-2">&#10003; {job.state.successCount}</span>
                     )}
                     {job.state.failureCount !== undefined && (
-                      <span className="text-mc-accent-red ml-2">✗ {job.state.failureCount}</span>
+                      <span className="text-mc-accent-red ml-2">&#10007; {job.state.failureCount}</span>
                     )}
                   </div>
                 </div>
@@ -286,7 +287,10 @@ function UpcomingRunsPanel({ jobs }: { jobs: CronJob[] }) {
 
   if (upcoming.length === 0) {
     return (
-      <div className="text-xs text-mc-text-secondary/60 py-4 text-center">No upcoming runs scheduled</div>
+      <div className="text-center py-6">
+        <div className="text-mc-text-secondary text-xs">No upcoming runs scheduled</div>
+        <p className="text-[11px] text-mc-text-secondary/50 mt-1">Enable jobs to see their schedules here</p>
+      </div>
     );
   }
 
@@ -300,7 +304,7 @@ function UpcomingRunsPanel({ jobs }: { jobs: CronJob[] }) {
         return (
           <div
             key={`${run.name}-${i}`}
-            className={`flex items-center justify-between rounded p-2 text-xs ${
+            className={`flex items-center justify-between rounded-lg p-2.5 text-xs ${
               soon ? 'bg-mc-accent/10 border border-mc-accent/20' : 'bg-mc-bg border border-mc-border/40'
             }`}
           >
@@ -340,9 +344,12 @@ function RecentFailuresPanel({ jobs }: { jobs: CronJob[] }) {
 
   if (failures.length === 0) {
     return (
-      <div className="text-xs text-mc-accent-green flex items-center gap-2 py-4">
-        <CheckCircle2 className="w-4 h-4" />
-        No recent failures
+      <div className="text-center py-6">
+        <div className="text-mc-accent-green flex items-center justify-center gap-2 text-xs">
+          <CheckCircle2 className="w-4 h-4" />
+          All clear
+        </div>
+        <p className="text-[11px] text-mc-text-secondary/50 mt-1">No recent failures detected</p>
       </div>
     );
   }
@@ -350,7 +357,7 @@ function RecentFailuresPanel({ jobs }: { jobs: CronJob[] }) {
   return (
     <div className="space-y-2">
       {failures.map((f) => (
-        <div key={f.id} className="rounded border border-mc-accent-red/30 bg-mc-accent-red/5 p-2.5 text-xs">
+        <div key={f.id} className="rounded-lg border border-mc-accent-red/30 bg-mc-accent-red/5 p-2.5 text-xs">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <AlertCircle className="w-3.5 h-3.5 text-mc-accent-red flex-shrink-0" />
@@ -359,7 +366,7 @@ function RecentFailuresPanel({ jobs }: { jobs: CronJob[] }) {
             <span className="text-mc-text-secondary/70 flex-shrink-0">{fmtTs(f.lastRunAtMs)}</span>
           </div>
           {f.lastError && (
-            <div className="mt-1.5 ml-5 font-mono text-[10px] text-mc-accent-red/70 bg-mc-accent-red/10 rounded px-2 py-1 break-all">
+            <div className="mt-1.5 ml-5 font-mono text-[10px] text-mc-accent-red/70 bg-mc-accent-red/10 rounded border border-mc-accent-red/15 px-2 py-1 break-all">
               {f.lastError}
             </div>
           )}
@@ -383,7 +390,7 @@ function TaskCalendarSection() {
 
   const priorityColor = (p: string) => {
     if (p === 'urgent') return 'border-mc-accent-red/60 bg-mc-accent-red/10';
-    if (p === 'high') return 'border-mc-accent/40 bg-mc-accent/8';
+    if (p === 'high') return 'border-mc-accent-yellow/40 bg-mc-accent-yellow/8';
     if (p === 'normal') return 'border-mc-border/60 bg-mc-bg-tertiary';
     return 'border-mc-border/30 bg-mc-bg-tertiary/60';
   };
@@ -391,53 +398,45 @@ function TaskCalendarSection() {
   const today = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <CalendarDays className="w-4 h-4 text-mc-text-secondary" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-mc-text-secondary">
-          Task Schedule — This Week
-        </h2>
-      </div>
-      <div className="grid grid-cols-7 gap-2 min-w-[840px]">
-        {days.map((day) => {
-          const key = format(day, 'yyyy-MM-dd');
-          const dayTasks = dueTasks.filter((t) => (t.due_date || '').startsWith(key));
-          const isToday = key === today;
+    <div className="grid grid-cols-7 gap-2 min-w-[840px]">
+      {days.map((day) => {
+        const key = format(day, 'yyyy-MM-dd');
+        const dayTasks = dueTasks.filter((t) => (t.due_date || '').startsWith(key));
+        const isToday = key === today;
 
-          return (
-            <div
-              key={key}
-              className={`rounded-lg border min-h-[140px] p-2 ${
-                isToday
-                  ? 'border-mc-accent/40 bg-mc-accent/5'
-                  : 'border-mc-border bg-mc-bg-secondary'
-              }`}
-            >
-              <div className={`text-xs font-semibold mb-0.5 ${isToday ? 'text-mc-accent' : ''}`}>
-                {format(day, 'EEE')}
-              </div>
-              <div className={`text-[11px] mb-2 ${isToday ? 'text-mc-accent/70' : 'text-mc-text-secondary'}`}>
-                {format(day, 'MMM d')}
-                {isToday && <span className="ml-1 text-[9px] uppercase tracking-wider">today</span>}
-              </div>
-              <div className="space-y-1.5">
-                {dayTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`rounded border p-1.5 text-[11px] ${priorityColor(task.priority)}`}
-                  >
-                    <div className="font-medium truncate leading-tight">{task.title}</div>
-                    <div className="text-mc-text-secondary/70 mt-0.5 capitalize">{task.priority}</div>
-                  </div>
-                ))}
-                {dayTasks.length === 0 && (
-                  <div className="text-[10px] text-mc-text-secondary/40">—</div>
-                )}
-              </div>
+        return (
+          <div
+            key={key}
+            className={`rounded-lg border min-h-[140px] p-2.5 ${
+              isToday
+                ? 'border-mc-accent/40 bg-mc-accent/5'
+                : 'border-mc-border/60 bg-mc-bg'
+            }`}
+          >
+            <div className={`text-xs font-semibold mb-0.5 ${isToday ? 'text-mc-accent' : ''}`}>
+              {format(day, 'EEE')}
             </div>
-          );
-        })}
-      </div>
+            <div className={`text-[11px] mb-2 ${isToday ? 'text-mc-accent/70' : 'text-mc-text-secondary'}`}>
+              {format(day, 'MMM d')}
+              {isToday && <span className="ml-1 text-[9px] uppercase tracking-wider font-medium">today</span>}
+            </div>
+            <div className="space-y-1.5">
+              {dayTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className={`rounded border p-1.5 text-[11px] ${priorityColor(task.priority)}`}
+                >
+                  <div className="font-medium truncate leading-tight">{task.title}</div>
+                  <div className="text-mc-text-secondary/70 mt-0.5 capitalize">{task.priority}</div>
+                </div>
+              ))}
+              {dayTasks.length === 0 && (
+                <div className="text-[10px] text-mc-text-secondary/30 text-center pt-2">—</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -554,7 +553,7 @@ export default function CalendarPage() {
     const active = sortKey === k;
     return (
       <th
-        className={`py-2 pr-4 text-left text-[11px] uppercase tracking-wider cursor-pointer select-none whitespace-nowrap ${
+        className={`py-2.5 pr-4 text-left text-[11px] uppercase tracking-wider cursor-pointer select-none whitespace-nowrap ${
           active ? 'text-mc-accent' : 'text-mc-text-secondary hover:text-mc-text'
         }`}
         onClick={() => {
@@ -569,87 +568,87 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-4 space-y-5">
+    <div className="h-full overflow-auto p-4 space-y-4">
       {/* Header */}
-      <div className="rounded-lg border border-mc-border bg-mc-bg-secondary p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold flex items-center gap-2">
-              <Clock className="w-5 h-5 text-mc-accent" />
-              Schedule &amp; Cron
-            </h1>
-            <p className="text-sm text-mc-text-secondary mt-0.5">
-              Lifecycle management for all scheduled jobs
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {lastRefreshed && (
-              <span className="text-[11px] text-mc-text-secondary/60">
-                Updated {format(lastRefreshed, 'HH:mm:ss')}
-              </span>
-            )}
-            <button
-              onClick={() => loadCron(true)}
-              disabled={loading || refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-mc-border text-xs text-mc-text-secondary hover:text-mc-text hover:border-mc-accent/40 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing…' : 'Refresh'}
-            </button>
-          </div>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <Clock className="w-5 h-5 text-mc-accent" />
+            Schedule &amp; Cron
+          </h1>
+          <p className="text-sm text-mc-text-secondary mt-0.5">
+            Lifecycle management for all scheduled jobs
+          </p>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mt-4">
-          {[
-            { label: 'Total Jobs', value: loading ? '…' : String(stats.total), color: 'text-mc-text' },
-            { label: 'Enabled', value: loading ? '…' : String(stats.enabled), color: 'text-mc-accent-green' },
-            {
-              label: 'Failing',
-              value: loading ? '…' : String(stats.failing),
-              color: stats.failing > 0 ? 'text-mc-accent-red' : 'text-mc-text-secondary',
-            },
-            {
-              label: 'Next Run',
-              value: loading ? '…' : fmtTs(stats.nextRun),
-              color: 'text-mc-accent',
-            },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="rounded border border-mc-border bg-mc-bg p-3 text-center">
-              <div className={`text-xl font-bold ${color}`}>{value}</div>
-              <div className="text-[11px] text-mc-text-secondary mt-0.5 uppercase tracking-wider">{label}</div>
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+          {lastRefreshed && (
+            <span className="text-[11px] text-mc-text-secondary/60">
+              Updated {format(lastRefreshed, 'HH:mm:ss')}
+            </span>
+          )}
+          <button
+            onClick={() => loadCron(true)}
+            disabled={loading || refreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-mc-border text-xs text-mc-text-secondary hover:text-mc-text hover:border-mc-accent/40 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
         </div>
-
-        {!writeEnabled && (
-          <div className="mt-3 flex items-center gap-2 rounded border border-mc-accent-yellow/40 bg-mc-accent-yellow/10 px-3 py-2 text-xs text-mc-accent-yellow">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            Write controls are disabled. Set{' '}
-            <code className="font-mono bg-mc-accent-yellow/20 px-1 rounded">MC_CRON_CONTROLS_WRITE_ENABLED=true</code>{' '}
-            to enable run/enable/disable.
-          </div>
-        )}
-        {actionError && (
-          <div className="mt-3 flex items-center gap-2 rounded border border-mc-accent-red/40 bg-mc-accent-red/10 px-3 py-2 text-xs text-mc-accent-red">
-            <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            {actionError}
-            <button onClick={() => setActionError(null)} className="ml-auto text-mc-accent-red/60 hover:text-mc-accent-red">✕</button>
-          </div>
-        )}
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: 'Total Jobs', value: loading ? '…' : String(stats.total), color: 'text-mc-text' },
+          { label: 'Enabled', value: loading ? '…' : String(stats.enabled), color: 'text-mc-accent-green' },
+          {
+            label: 'Failing',
+            value: loading ? '…' : String(stats.failing),
+            color: stats.failing > 0 ? 'text-mc-accent-red' : 'text-mc-text-secondary',
+          },
+          {
+            label: 'Next Run',
+            value: loading ? '…' : fmtTs(stats.nextRun),
+            color: 'text-mc-accent',
+          },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="rounded-xl border border-mc-border bg-mc-bg-secondary p-3 text-center">
+            <div className={`text-xl font-bold ${color}`}>{value}</div>
+            <div className="text-[11px] text-mc-text-secondary mt-0.5 uppercase tracking-wider">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Alerts */}
+      {!writeEnabled && (
+        <div className="flex items-center gap-2 rounded-lg border border-mc-accent-yellow/40 bg-mc-accent-yellow/10 px-3 py-2 text-xs text-mc-accent-yellow">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          Write controls are disabled. Set{' '}
+          <code className="font-mono bg-mc-accent-yellow/20 px-1 rounded">MC_CRON_CONTROLS_WRITE_ENABLED=true</code>{' '}
+          to enable run/enable/disable.
+        </div>
+      )}
+      {actionError && (
+        <div className="flex items-center gap-2 rounded-lg border border-mc-accent-red/40 bg-mc-accent-red/10 px-3 py-2 text-xs text-mc-accent-red">
+          <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {actionError}
+          <button onClick={() => setActionError(null)} className="ml-auto text-mc-accent-red/60 hover:text-mc-accent-red">&#10005;</button>
+        </div>
+      )}
 
       {/* Main Layout: Table + Side Panels */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4">
         {/* Job Table */}
-        <div className="rounded-lg border border-mc-border bg-mc-bg-secondary overflow-hidden">
-          <div className="flex items-center gap-3 p-3 border-b border-mc-border/60 bg-mc-bg-tertiary/40">
+        <div className="rounded-xl border border-mc-border bg-mc-bg-secondary overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-mc-border/60 bg-mc-bg-tertiary/40">
+            <Filter className="w-3.5 h-3.5 text-mc-text-secondary flex-shrink-0" />
             <input
               type="text"
               placeholder="Filter jobs…"
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              className="flex-1 min-w-0 rounded border border-mc-border bg-mc-bg px-3 py-1.5 text-xs text-mc-text placeholder:text-mc-text-secondary/60 focus:outline-none focus:border-mc-accent/60"
+              className="flex-1 min-w-0 rounded-lg border border-mc-border bg-mc-bg px-3 py-1.5 text-xs text-mc-text placeholder:text-mc-text-secondary/60 focus:outline-none focus:border-mc-accent/60 transition-colors"
             />
             <label className="flex items-center gap-1.5 text-xs text-mc-text-secondary cursor-pointer select-none whitespace-nowrap">
               <input
@@ -676,22 +675,29 @@ export default function CalendarPage() {
               {error}
             </div>
           ) : filteredJobs.length === 0 ? (
-            <div className="py-16 text-center text-sm text-mc-text-secondary">
-              {jobs.length === 0
-                ? 'No cron jobs found. Make sure OpenClaw is connected.'
-                : 'No jobs match the current filter.'}
+            <div className="text-center py-12">
+              <div className="text-mc-text-secondary text-sm">
+                {jobs.length === 0
+                  ? 'No cron jobs found'
+                  : 'No jobs match the current filter'}
+              </div>
+              <p className="text-[11px] text-mc-text-secondary/50 mt-1">
+                {jobs.length === 0
+                  ? 'Make sure OpenClaw is connected and has scheduled jobs'
+                  : 'Try adjusting your search or enable showing disabled jobs'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead className="border-b border-mc-border/60 bg-mc-bg-tertiary/30">
                   <tr>
-                    <th className="w-5 pl-3" />
+                    <th className="w-5 pl-4" />
                     <SortHeader k="name" label="Job Name" />
                     <SortHeader k="status" label="Status" />
                     <SortHeader k="nextRun" label="Next Run" />
                     <SortHeader k="lastRun" label="Last Run" />
-                    <th className="py-2 pr-3 text-right text-[11px] uppercase tracking-wider text-mc-text-secondary">
+                    <th className="py-2.5 pr-4 text-right text-[11px] uppercase tracking-wider text-mc-text-secondary">
                       Actions
                     </th>
                   </tr>
@@ -714,32 +720,48 @@ export default function CalendarPage() {
 
         {/* Side Panels */}
         <div className="space-y-4">
-          <div className="rounded-lg border border-mc-border bg-mc-bg-secondary p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-mc-text-secondary mb-3 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5" />
-              Upcoming Runs
-            </h3>
-            <UpcomingRunsPanel jobs={jobs} />
+          <div className="rounded-xl border border-mc-border bg-mc-bg-secondary overflow-hidden">
+            <div className="px-4 py-3 border-b border-mc-border/60 bg-mc-bg-tertiary/30">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-mc-text-secondary flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5" />
+                Upcoming Runs
+              </h3>
+            </div>
+            <div className="p-3">
+              <UpcomingRunsPanel jobs={jobs} />
+            </div>
           </div>
 
-          <div className="rounded-lg border border-mc-border bg-mc-bg-secondary p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-mc-text-secondary mb-3 flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5" />
-              Recent Failures
+          <div className="rounded-xl border border-mc-border bg-mc-bg-secondary overflow-hidden">
+            <div className="px-4 py-3 border-b border-mc-border/60 bg-mc-bg-tertiary/30 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-mc-text-secondary flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Recent Failures
+              </h3>
               {stats.failing > 0 && (
-                <span className="ml-auto bg-mc-accent-red text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                <span className="bg-mc-accent-red text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                   {stats.failing}
                 </span>
               )}
-            </h3>
-            <RecentFailuresPanel jobs={jobs} />
+            </div>
+            <div className="p-3">
+              <RecentFailuresPanel jobs={jobs} />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Task Calendar */}
-      <div className="rounded-lg border border-mc-border bg-mc-bg-secondary p-4 overflow-x-auto">
-        <TaskCalendarSection />
+      <div className="rounded-xl border border-mc-border bg-mc-bg-secondary overflow-hidden">
+        <div className="px-4 py-3 border-b border-mc-border/60 bg-mc-bg-tertiary/30">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-mc-text-secondary flex items-center gap-2">
+            <CalendarDays className="w-3.5 h-3.5" />
+            Task Schedule — This Week
+          </h3>
+        </div>
+        <div className="p-4 overflow-x-auto">
+          <TaskCalendarSection />
+        </div>
       </div>
     </div>
   );
