@@ -101,7 +101,7 @@ export default function SystemPage() {
         },
         providers,
         channels,
-        mcVersion: 'v1.5.3',
+        mcVersion: `v${process.env.MC_VERSION || '1.5.3'}`,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load system status');
