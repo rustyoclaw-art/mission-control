@@ -390,7 +390,7 @@ function TaskCalendarSection() {
 
   const priorityColor = (p: string) => {
     if (p === 'urgent') return 'border-mc-accent-red/60 bg-mc-accent-red/10';
-    if (p === 'high') return 'border-mc-accent-yellow/40 bg-mc-accent-yellow/8';
+    if (p === 'high') return 'border-mc-accent-yellow/40 bg-mc-accent-yellow/10';
     if (p === 'normal') return 'border-mc-border/60 bg-mc-bg-tertiary';
     return 'border-mc-border/30 bg-mc-bg-tertiary/60';
   };
@@ -407,10 +407,10 @@ function TaskCalendarSection() {
         return (
           <div
             key={key}
-            className={`rounded-lg border min-h-[140px] p-2.5 ${
+            className={`rounded-lg border min-h-[140px] p-2.5 transition-colors ${
               isToday
                 ? 'border-mc-accent/40 bg-mc-accent/5'
-                : 'border-mc-border/60 bg-mc-bg'
+                : 'border-mc-border/60 bg-mc-bg hover:border-mc-border'
             }`}
           >
             <div className={`text-xs font-semibold mb-0.5 ${isToday ? 'text-mc-accent' : ''}`}>
@@ -613,7 +613,7 @@ export default function CalendarPage() {
             color: 'text-mc-accent',
           },
         ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl border border-mc-border bg-mc-bg-secondary p-3 text-center">
+          <div key={label} className="rounded-xl border border-mc-border bg-mc-bg-secondary p-3 text-center hover:border-mc-accent/20 transition-colors">
             <div className={`text-xl font-bold ${color}`}>{value}</div>
             <div className="text-[11px] text-mc-text-secondary mt-0.5 uppercase tracking-wider">{label}</div>
           </div>
