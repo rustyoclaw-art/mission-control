@@ -101,7 +101,7 @@ export function PipelineRunPanel({ workspaceId }: PipelineRunPanelProps) {
   const firstPendingStage = details?.stages.find((s) => s.status === 'pending' || s.status === 'running');
 
   return (
-    <div className="mx-3 mt-3 p-3 border border-mc-border rounded bg-mc-bg-secondary">
+    <div className="p-4 border border-mc-border rounded-xl bg-mc-bg-secondary">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wider text-mc-text-secondary">Pipeline Run Controls</p>

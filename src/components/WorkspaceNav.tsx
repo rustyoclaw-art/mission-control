@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import {
+  Activity,
   CalendarDays,
   Server,
   Users,
@@ -34,7 +35,7 @@ const NAV_ITEMS = [
   { href: '/council', label: 'Council', icon: Shield },
   { href: '/radar', label: 'Radar', icon: Radio },
   { href: '/office', label: 'Office', icon: Building2 },
-  { href: '/activity', label: 'Activity', icon: Server },
+  { href: '/activity', label: 'Activity', icon: Activity },
 ];
 
 export function WorkspaceNav() {

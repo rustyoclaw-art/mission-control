@@ -95,28 +95,30 @@ export default function ApprovalsPage() {
 
   return (
     <div className="h-full overflow-auto p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Approvals</h1>
-          <p className="text-sm text-mc-text-secondary">{reviewTasks.length} tasks waiting for review</p>
-        </div>
+      <div className="rounded-xl border border-mc-border bg-mc-bg-secondary p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">Approvals</h1>
+            <p className="text-sm text-mc-text-secondary mt-0.5">{reviewTasks.length} tasks waiting for review</p>
+          </div>
 
-        {/* Sort controls */}
-        <div className="flex items-center gap-1.5">
-          <ArrowUpDown className="w-3.5 h-3.5 text-mc-text-secondary" />
-          {(['oldest', 'newest', 'priority'] as SortMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => handleSortChange(mode)}
-              className={`px-2.5 py-1 rounded text-xs capitalize ${
-                sortMode === mode
-                  ? 'bg-mc-accent/15 text-mc-accent border border-mc-accent/25'
-                  : 'text-mc-text-secondary hover:bg-mc-bg-tertiary border border-transparent'
-              }`}
-            >
-              {mode}
-            </button>
-          ))}
+          {/* Sort controls */}
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="w-3.5 h-3.5 text-mc-text-secondary" />
+            {(['oldest', 'newest', 'priority'] as SortMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleSortChange(mode)}
+                className={`px-2.5 py-1 rounded text-xs capitalize ${
+                  sortMode === mode
+                    ? 'bg-mc-accent/15 text-mc-accent border border-mc-accent/25'
+                    : 'text-mc-text-secondary hover:bg-mc-bg-tertiary border border-transparent'
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

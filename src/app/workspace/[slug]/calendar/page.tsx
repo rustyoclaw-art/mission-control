@@ -570,30 +570,32 @@ export default function CalendarPage() {
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <Clock className="w-5 h-5 text-mc-accent" />
-            Schedule &amp; Cron
-          </h1>
-          <p className="text-sm text-mc-text-secondary mt-0.5">
-            Lifecycle management for all scheduled jobs
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lastRefreshed && (
-            <span className="text-[11px] text-mc-text-secondary/60">
-              Updated {format(lastRefreshed, 'HH:mm:ss')}
-            </span>
-          )}
-          <button
-            onClick={() => loadCron(true)}
-            disabled={loading || refreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-mc-border text-xs text-mc-text-secondary hover:text-mc-text hover:border-mc-accent/40 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing…' : 'Refresh'}
-          </button>
+      <div className="rounded-xl border border-mc-border bg-mc-bg-secondary p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-mc-accent" />
+              Schedule &amp; Cron
+            </h1>
+            <p className="text-sm text-mc-text-secondary mt-0.5">
+              Lifecycle management for all scheduled jobs
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {lastRefreshed && (
+              <span className="text-[11px] text-mc-text-secondary/60">
+                Updated {format(lastRefreshed, 'HH:mm:ss')}
+              </span>
+            )}
+            <button
+              onClick={() => loadCron(true)}
+              disabled={loading || refreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-mc-border text-xs text-mc-text-secondary hover:text-mc-text hover:border-mc-accent/40 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
       </div>
 

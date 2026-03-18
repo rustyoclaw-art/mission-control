@@ -104,7 +104,7 @@ export function MemoryTimeline() {
 
   return (
     <div className="px-3 pb-3">
-      <div className="bg-mc-bg-secondary border border-mc-border rounded-lg p-3">
+      <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-mc-text-secondary">
             <BookOpenText className="w-4 h-4" />

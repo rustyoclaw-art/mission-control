@@ -102,15 +102,15 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Success Message */}
         {saveSuccess && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded text-green-400">
-            ✓ Settings saved successfully
+          <div className="mb-6 p-4 bg-mc-accent-green/10 border border-mc-accent-green/30 rounded text-mc-accent-green">
+            Settings saved successfully
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded text-red-400">
-            ✗ {error}
+          <div className="mb-6 p-4 bg-mc-accent-red/10 border border-mc-accent-red/30 rounded text-mc-accent-red">
+            {error}
           </div>
         )}
 
@@ -231,21 +231,21 @@ export default function SettingsPage() {
         </section>
 
         {/* Environment Variables Note */}
-        <section className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <h3 className="text-lg font-semibold text-blue-400 mb-2">
-            📝 Environment Variables
+        <section className="p-6 bg-mc-accent/10 border border-mc-accent/30 rounded-lg">
+          <h3 className="text-lg font-semibold text-mc-accent mb-2">
+            Environment Variables
           </h3>
-          <p className="text-sm text-blue-300 mb-3">
+          <p className="text-sm text-mc-text-secondary mb-3">
             Some settings are also configurable via environment variables in <code className="px-2 py-1 bg-mc-bg rounded">.env.local</code>:
           </p>
-          <ul className="text-sm text-blue-300 space-y-1 ml-4 list-disc">
+          <ul className="text-sm text-mc-text-secondary space-y-1 ml-4 list-disc">
             <li><code>MISSION_CONTROL_URL</code> - API URL override</li>
             <li><code>WORKSPACE_BASE_PATH</code> - Base workspace directory</li>
             <li><code>PROJECTS_PATH</code> - Projects directory</li>
             <li><code>OPENCLAW_GATEWAY_URL</code> - Gateway WebSocket URL</li>
             <li><code>OPENCLAW_GATEWAY_TOKEN</code> - Gateway auth token</li>
           </ul>
-          <p className="text-xs text-blue-400 mt-3">
+          <p className="text-xs text-mc-text-secondary mt-3">
             Environment variables take precedence over UI settings for server-side operations.
           </p>
         </section>

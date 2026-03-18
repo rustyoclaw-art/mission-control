@@ -46,9 +46,9 @@ export default function ProjectsPage() {
 
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
-      <div>
+      <div className="rounded-xl border border-mc-border bg-mc-bg-secondary p-5">
         <h1 className="text-xl font-semibold">Projects</h1>
-        <p className="text-sm text-mc-text-secondary">
+        <p className="text-sm text-mc-text-secondary mt-1">
           {data?.totals ? `${data.totals.projects} projects · ${data.totals.tasks} tasks` : 'Loading…'}
         </p>
       </div>
