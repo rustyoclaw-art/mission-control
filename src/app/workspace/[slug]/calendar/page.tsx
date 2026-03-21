@@ -455,6 +455,17 @@ export default function CalendarPage() {
   const [filterText, setFilterText] = useState('');
   const [showDisabled, setShowDisabled] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+
+  const toggleFilter = (key: string) => {
+    setActiveFilters(prev => {
+      if (key === 'total') return new Set<string>();
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const loadCron = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -523,6 +534,15 @@ export default function CalendarPage() {
     if (!showDisabled) {
       result = result.filter((j) => j.enabled);
     }
+    if (activeFilters.has('enabled')) {
+      result = result.filter((j) => j.enabled);
+    }
+    if (activeFilters.has('failing')) {
+      result = result.filter((j) => isFailingJob(j) && j.enabled);
+    }
+    if (activeFilters.has('nextRun')) {
+      result = result.filter((j) => j.enabled && !!j.state?.nextRunAtMs);
+    }
     return [...result].sort((a, b) => {
       let cmp = 0;
       if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
@@ -537,7 +557,7 @@ export default function CalendarPage() {
       }
       return sortAsc ? cmp : -cmp;
     });
-  }, [jobs, filterText, showDisabled, sortKey, sortAsc]);
+  }, [jobs, filterText, showDisabled, activeFilters, sortKey, sortAsc]);
 
   const stats = useMemo(() => {
     const enabled = jobs.filter((j) => j.enabled);
@@ -602,24 +622,38 @@ export default function CalendarPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'Total Jobs', value: loading ? '…' : String(stats.total), color: 'text-mc-text' },
-          { label: 'Enabled', value: loading ? '…' : String(stats.enabled), color: 'text-mc-accent-green' },
+          { key: 'total', label: 'Total Jobs', value: loading ? '…' : String(stats.total), color: 'text-mc-text' },
+          { key: 'enabled', label: 'Enabled', value: loading ? '…' : String(stats.enabled), color: 'text-mc-accent-green' },
           {
+            key: 'failing',
             label: 'Failing',
             value: loading ? '…' : String(stats.failing),
             color: stats.failing > 0 ? 'text-mc-accent-red' : 'text-mc-text-secondary',
           },
           {
+            key: 'nextRun',
             label: 'Next Run',
             value: loading ? '…' : fmtTs(stats.nextRun),
             color: 'text-mc-accent',
           },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl border border-mc-border bg-mc-bg-secondary p-3 text-center hover:border-mc-accent/20 transition-colors">
-            <div className={`text-xl font-bold ${color}`}>{value}</div>
-            <div className="text-[11px] text-mc-text-secondary mt-0.5 uppercase tracking-wider">{label}</div>
-          </div>
-        ))}
+        ].map(({ key, label, value, color }) => {
+          const isActive = key === 'total' ? activeFilters.size === 0 : activeFilters.has(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => toggleFilter(key)}
+              className={`rounded-xl border p-3 text-center cursor-pointer transition-colors w-full ${
+                isActive
+                  ? 'border-mc-accent ring-1 ring-mc-accent bg-mc-accent/10'
+                  : 'border-mc-border bg-mc-bg-secondary hover:border-mc-accent/20'
+              }`}
+            >
+              <div className={`text-xl font-bold ${color}`}>{value}</div>
+              <div className="text-[11px] text-mc-text-secondary mt-0.5 uppercase tracking-wider">{label}</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Alerts */}
