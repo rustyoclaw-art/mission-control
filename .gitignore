@@ -55,3 +55,7 @@ next-env.d.ts
 # Uploaded task images (user data)
 /data/task-images/*
 !/data/task-images/.gitkeep
+
+# Canary/test artifacts (runtime output)
+artifacts/
+canary-artifacts/
