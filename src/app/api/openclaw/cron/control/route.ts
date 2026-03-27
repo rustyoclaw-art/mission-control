@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
+export const dynamic = 'force-dynamic';
+
 const execFileAsync = promisify(execFile);
 
 type Action = 'run-now' | 'enable' | 'disable';

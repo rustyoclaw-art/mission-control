@@ -3,6 +3,8 @@ import { promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+export const dynamic = 'force-dynamic';
+
 function todayFileName() {
   const now = new Date();
   const y = now.getFullYear();

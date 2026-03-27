@@ -4,6 +4,8 @@ import { promisify } from 'node:util';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+export const dynamic = 'force-dynamic';
+
 const execFileAsync = promisify(execFile);
 
 export async function GET() {

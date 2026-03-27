@@ -3,6 +3,8 @@ import { Dirent, promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+export const dynamic = 'force-dynamic';
+
 type DocItem = {
   path: string;
   name: string;
