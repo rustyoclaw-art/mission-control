@@ -25,15 +25,36 @@ export async function GET() {
     const todayPath = join(memoryDir, todayFileName());
 
     const content = await fs.readFile(todayPath, 'utf-8').catch(() => '');
+
+    // Parse our note format: bullet lines (- / *), section headers (##),
+    // and tagged entries ([tag] ...) that don't start with a bullet.
+    const tagPattern = /^\[([^\]]+)\]/;
     const lines = content.split('\n')
       .map((line, index) => ({ line: line.trim(), index }))
-      .filter(({ line }) => line.startsWith('- ') || line.startsWith('* '))
-      .map(({ line, index }) => ({
-        id: `${todayFileName()}-${index}`,
-        content: line.replace(/^[-*]\s+/, ''),
-        date: todayFileName().replace('.md', ''),
-        lineIndex: index,
-      }));
+      .filter(({ line }) =>
+        line.startsWith('- ') ||
+        line.startsWith('* ') ||
+        line.startsWith('## ') ||
+        (tagPattern.test(line) && !line.startsWith('#'))
+      )
+      .map(({ line, index }) => {
+        let display = line;
+        // Normalize bullets
+        if (line.startsWith('- ') || line.startsWith('* ')) {
+          display = line.replace(/^[-*]\s+/, '');
+        }
+        // Keep ## headers as-is but strip the ## prefix for display
+        if (line.startsWith('## ')) {
+          display = line.replace(/^##\s+/, '');
+        }
+        return {
+          id: `${todayFileName()}-${index}`,
+          content: display,
+          date: todayFileName().replace('.md', ''),
+          lineIndex: index,
+          type: line.startsWith('## ') ? 'section' : undefined,
+        };
+      });
 
     return NextResponse.json({
       ok: true,
