@@ -18,6 +18,7 @@ import {
   CheckSquare,
   LayoutGrid,
   ChevronLeft,
+  NotebookText,
 } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { href: '/pipeline', label: 'Pipeline', icon: Rocket },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/docs', label: 'Docs', icon: FileSearch },
+  { href: '/notebook', label: 'Notebook', icon: NotebookText },
   { href: '/approvals', label: 'Approvals', icon: CheckSquare, badgeKey: 'approvals' as const },
   { href: '/council', label: 'Council', icon: Shield },
   { href: '/radar', label: 'Radar', icon: Radio },
