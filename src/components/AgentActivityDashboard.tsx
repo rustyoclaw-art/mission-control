@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Activity, Clock, Filter, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Agent, Event, Task, Workspace } from '@/lib/types';
+import { LiveSystemFeed } from '@/components/LiveSystemFeed';
 
 type ActivityFilter = 'all' | 'working' | 'blocked' | 'idle';
 
@@ -244,6 +245,8 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
           <MetricCard label="Blocked" value={String(blockedAgentIds.size)} />
           <MetricCard label="Active Tasks" value={String(activeTasks.length)} />
         </section>
+
+        <LiveSystemFeed maxHeight={isPortrait ? '360px' : '480px'} />
 
         <section className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
